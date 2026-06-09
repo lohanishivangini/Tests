@@ -1,297 +1,160 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Nitro Racer</title>
-    <style>
-        body {
-            margin: 0;
-            background: #222;
-            color: white;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        #game-container {
-            position: relative;
-            border: 4px solid #444;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        canvas {
-            display: block;
-            background: #333;
-        }
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            pointer-events: none;
-            text-shadow: 2px 2px #000;
-        }
-        .screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        .hidden { display: none !important; }
-        button {
-            padding: 10px 20px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        table { margin-top: 20px; border-collapse: collapse; width: 80%; }
-        th, td { border: 1px solid #555; padding: 8px; }
-        .booster-active { color: #f1c40f; font-weight: bold; animation: blink 0.5s infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
-    </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f4f7f6; padding: 20px; }
+    .card { margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .hidden { display: none; }
+    #letter-head { border: 2px solid #000; padding: 20px; margin-top: 20px; background: white;}
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h2 class="text-center mb-4">Store Management System</h2>
 
-<div id="game-container">
-    <canvas id="gameCanvas" width="400" height="600"></canvas>
-    
-    <div id="ui">
-        <div>Time: <span id="timer">03:00</span></div>
-        <div>Score: <span id="score">0</span></div>
-        <div id="booster-text">Booster: <span id="booster-status">Charging...</span></div>
+    <!-- Login Section -->
+    <div id="login-section" class="card p-4 mx-auto" style="max-width: 400px;">
+      <h4>Login</h4>
+      <input type="text" id="email" class="form-control mb-2" placeholder="Email">
+      <input type="password" id="pass" class="form-control mb-2" placeholder="Password">
+      <button class="btn btn-primary w-100" onclick="doLogin()">Login</button>
     </div>
 
-    <!-- Start Screen -->
-    <div id="start-screen" class="screen">
-        <h1>RETRO RACER</h1>
-        <p>Use Arrow Keys to drive.<br>Avoid other cars!<br>3 Minutes to set a record.</p>
-        <button onclick="startGame()">START RACE</button>
+    <!-- Main Dashboard -->
+    <div id="main-ui" class="hidden">
+      <div class="d-flex justify-content-between mb-3">
+        <h5 id="welcome-text"></h5>
+        <button class="btn btn-danger btn-sm" onclick="location.reload()">Logout</button>
+      </div>
+
+      <!-- Interface 1: Requester -->
+      <div id="ui-Requester" class="interface hidden">
+        <div class="card p-4">
+          <h4>Raise Item Requirement</h4>
+          <select id="item-select" class="form-select mb-2"></select>
+          <input type="number" id="item-qty" class="form-control mb-2" placeholder="Quantity">
+          <button class="btn btn-success" onclick="submitReq()">Submit Requirement</button>
+        </div>
+      </div>
+
+      <!-- Interface 2: Principal -->
+      <div id="ui-Principal" class="interface hidden">
+        <div class="card p-4">
+          <h4>Principal Approval Queue</h4>
+          <table class="table" id="principal-table"></table>
+        </div>
+      </div>
+
+      <!-- Interface 3: Store Manager -->
+      <div id="ui-StoreManager" class="interface hidden">
+        <div class="card p-4">
+          <h4>Stock Availability & Allotment</h4>
+          <table class="table" id="store-table"></table>
+        </div>
+        <!-- Letter Preview -->
+        <div id="letter-view" class="hidden">
+           <div id="letter-head">
+             <h3 class="text-center">OFFICIAL ALLOTMENT LETTER</h3>
+             <hr>
+             <p>Date: <span id="l-date"></span></p>
+             <p>Ref ID: <span id="l-id"></span></p>
+             <p>Subject: Allotment of Store Items</p>
+             <p>The following items are hereby allotted: <b id="l-item"></b> (Qty: <b id="l-qty"></b>)</p>
+             <br><br>
+             <p class="text-end">Authorized Signatory,<br>Store Department</p>
+           </div>
+           <button class="btn btn-secondary mt-2" onclick="window.print()">Print Letter</button>
+        </div>
+      </div>
+
+      <!-- Interface 4: Scrap Committee -->
+      <div id="ui-ScrapCommittee" class="interface hidden">
+        <div class="card p-4">
+          <h4>Scrap Evaluation (Procurement > 3 Years)</h4>
+          <table class="table" id="scrap-table"></table>
+        </div>
+      </div>
+
     </div>
+  </div>
 
-    <!-- Game Over / Ranking Screen -->
-    <div id="end-screen" class="screen hidden">
-        <h1>RACE FINISHED</h1>
-        <p>Your Final Score: <span id="final-score">0</span></p>
-        <h3>RANKING BOARD</h3>
-        <table id="ranking-table">
-            <thead><tr><th>Rank</th><th>Score</th></tr></thead>
-            <tbody id="ranking-body"></tbody>
-        </table>
-        <button onclick="location.reload()">PLAY AGAIN</button>
-    </div>
-</div>
+  <script>
+    let currentUser = {};
 
-<script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const timerDisplay = document.getElementById('timer');
-    const scoreDisplay = document.getElementById('score');
-    const boosterStatus = document.getElementById('booster-status');
-
-    // Game Constants
-    const ROAD_WIDTH = canvas.width - 60;
-    const LANE_WIDTH = ROAD_WIDTH / 3;
-    const CAR_WIDTH = 40;
-    const CAR_HEIGHT = 70;
-    const TOTAL_TIME = 180; // 3 minutes
-
-    // Game State
-    let gameActive = false;
-    let score = 0;
-    let timeLeft = TOTAL_TIME;
-    let lastTime = 0;
-    let boosterTimer = 0;
-    let isBoosterActive = false;
-    let boosterEnd = 0;
-
-    // Player Object
-    const player = {
-        x: canvas.width / 2 - CAR_WIDTH / 2,
-        y: canvas.height - 120,
-        speed: 5,
-        maxSpeed: 8,
-        accel: 0.2,
-        friction: 0.1,
-        movingLeft: false,
-        movingRight: false,
-        movingUp: false,
-        movingDown: false
-    };
-
-    // Obstacles
-    let enemies = [];
-    let enemySpawnTimer = 0;
-
-    // Controls
-    window.addEventListener('keydown', e => {
-        if(e.key === 'ArrowLeft' || e.key === 'a') player.movingLeft = true;
-        if(e.key === 'ArrowRight' || e.key === 'd') player.movingRight = true;
-        if(e.key === 'ArrowUp' || e.key === 'w') player.movingUp = true;
-        if(e.key === 'ArrowDown' || e.key === 's') player.movingDown = true;
-    });
-
-    window.addEventListener('keyup', e => {
-        if(e.key === 'ArrowLeft' || e.key === 'a') player.movingLeft = false;
-        if(e.key === 'ArrowRight' || e.key === 'd') player.movingRight = false;
-        if(e.key === 'ArrowUp' || e.key === 'w') player.movingUp = false;
-        if(e.key === 'ArrowDown' || e.key === 's') player.movingDown = false;
-    });
-
-    function startGame() {
-        document.getElementById('start-screen').classList.add('hidden');
-        gameActive = true;
-        lastTime = performance.now();
-        requestAnimationFrame(gameLoop);
-        
-        // Start Timer Interval
-        const countdown = setInterval(() => {
-            if(!gameActive) { clearInterval(countdown); return; }
-            timeLeft--;
-            updateUI();
-            if(timeLeft <= 0) endGame();
-        }, 1000);
-
-        // Booster Logic (Every 30s)
-        setInterval(() => {
-            if(gameActive) activateBooster();
-        }, 30000);
+    function doLogin() {
+      const email = document.getElementById('email').value;
+      const pass = document.getElementById('pass').value;
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) {
+          currentUser = res;
+          document.getElementById('login-section').classList.add('hidden');
+          document.getElementById('main-ui').classList.remove('hidden');
+          document.getElementById('welcome-text').innerText = `Role: ${res.role}`;
+          showInterface(res.role);
+        } else { alert("Invalid Credentials"); }
+      }).login(email, pass);
     }
 
-    function activateBooster() {
-        isBoosterActive = true;
-        boosterStatus.innerText = "ACTIVE!";
-        boosterStatus.className = "booster-active";
-        player.maxSpeed = 15;
-        setTimeout(() => {
-            isBoosterActive = false;
-            player.maxSpeed = 8;
-            boosterStatus.innerText = "Charging...";
-            boosterStatus.className = "";
-        }, 5000); // Booster lasts 5 seconds
+    function showInterface(role) {
+      document.querySelectorAll('.interface').forEach(i => i.classList.add('hidden'));
+      document.getElementById('ui-' + role).classList.remove('hidden');
+      
+      if(role === 'Requester') loadItems();
+      if(role === 'Principal') loadRequests('Principal');
+      if(role === 'StoreManager') loadRequests('StoreManager');
+      if(role === 'ScrapCommittee') loadScrap();
     }
 
-    function updateUI() {
-        const mins = Math.floor(timeLeft / 60);
-        const secs = timeLeft % 60;
-        timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        scoreDisplay.innerText = Math.floor(score);
+    function loadItems() {
+      google.script.run.withSuccessHandler(items => {
+        const sel = document.getElementById('item-select');
+        items.forEach(it => sel.innerHTML += `<option>${it}</option>`);
+      }).getItemsList();
     }
 
-    function spawnEnemy() {
-        const lane = Math.floor(Math.random() * 3);
-        enemies.push({
-            x: 30 + (lane * LANE_WIDTH) + (LANE_WIDTH/2 - CAR_WIDTH/2),
-            y: -100,
-            speed: 3 + Math.random() * 4,
-            color: `hsl(${Math.random() * 360}, 70%, 50%)`
+    function submitReq() {
+      const item = document.getElementById('item-select').value;
+      const qty = document.getElementById('item-qty').value;
+      google.script.run.withSuccessHandler(msg => alert(msg))
+        .submitRequirement(item, qty, currentUser.email);
+    }
+
+    function loadRequests(role) {
+      google.script.run.withSuccessHandler(data => {
+        let html = `<tr><th>ID</th><th>Item</th><th>Qty</th><th>Action</th></tr>`;
+        data.forEach(r => {
+          html += `<tr><td>${r[0]}</td><td>${r[2]}</td><td>${r[3]}</td>
+          <td><button class="btn btn-primary btn-sm" onclick="approve('${r[0]}')">Approve</button></td></tr>`;
         });
+        document.getElementById(role === 'Principal' ? 'principal-table' : 'store-table').innerHTML = html;
+      }).getRequestsForRole(role);
     }
 
-    function drawCar(x, y, color, isPlayer = false) {
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, CAR_WIDTH, CAR_HEIGHT);
-        // Basic Windows/Details
-        ctx.fillStyle = "rgba(0,0,0,0.3)";
-        ctx.fillRect(x + 5, y + 10, CAR_WIDTH - 10, 15); // Windshield
-        if(isPlayer && isBoosterActive) {
-            ctx.strokeStyle = "#f1c40f";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(x-2, y-2, CAR_WIDTH+4, CAR_HEIGHT+4);
-        }
+    function approve(id) {
+      if(currentUser.role === 'StoreManager') {
+        google.script.run.withSuccessHandler(res => {
+          document.getElementById('letter-view').classList.remove('hidden');
+          document.getElementById('l-date').innerText = new Date().toLocaleDateString();
+          document.getElementById('l-id').innerText = res.id;
+          document.getElementById('l-item').innerText = res.item;
+          document.getElementById('l-qty').innerText = res.qty;
+        }).finalStoreApprove(id);
+      } else {
+        // Simple Logic for Principal approval
+        alert("Principal Approved " + id);
+      }
     }
 
-    function checkCollision(rect1, rect2) {
-        return rect1.x < rect2.x + CAR_WIDTH &&
-               rect1.x + CAR_WIDTH > rect2.x &&
-               rect1.y < rect2.y + CAR_HEIGHT &&
-               rect1.y + CAR_HEIGHT > rect2.y;
-    }
-
-    function gameLoop(timestamp) {
-        if(!gameActive) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw Road
-        ctx.fillStyle = "#444";
-        ctx.fillRect(30, 0, ROAD_WIDTH, canvas.height);
-        ctx.strokeStyle = "#fff";
-        ctx.setLineDash([20, 20]);
-        ctx.beginPath();
-        ctx.moveTo(30 + LANE_WIDTH, 0); ctx.lineTo(30 + LANE_WIDTH, canvas.height);
-        ctx.moveTo(30 + 2 * LANE_WIDTH, 0); ctx.lineTo(30 + 2 * LANE_WIDTH, canvas.height);
-        ctx.stroke();
-
-        // Player Movement
-        if(player.movingLeft && player.x > 35) player.x -= 5;
-        if(player.movingRight && player.x < canvas.width - 35 - CAR_WIDTH) player.x += 5;
-        if(player.movingUp) player.speed = Math.min(player.speed + player.accel, player.maxSpeed);
-        else if(player.movingDown) player.speed = Math.max(player.speed - player.accel, 0);
-        else player.speed = Math.max(player.speed - player.friction, 2); // Base cruising speed
-
-        // Update Score
-        score += player.speed / 10;
-
-        // Enemies
-        enemySpawnTimer++;
-        if(enemySpawnTimer > 60 - (player.speed * 2)) { // Difficulty adjustment
-            spawnEnemy();
-            enemySpawnTimer = 0;
-        }
-
-        enemies.forEach((enemy, index) => {
-            enemy.y += enemy.speed + (player.speed * 0.5); // Relative speed
-            drawCar(enemy.x, enemy.y, enemy.color);
-
-            if(checkCollision(player, enemy)) {
-                player.speed *= 0.5; // Speed reduced on touch
-                enemies.splice(index, 1);
-            }
-
-            if(enemy.y > canvas.height) enemies.splice(index, 1);
+    function loadScrap() {
+      google.script.run.withSuccessHandler(data => {
+        let html = `<tr><th>Item</th><th>Purchased</th><th>Action</th></tr>`;
+        data.forEach(r => {
+          html += `<tr><td>${r[1]}</td><td>${r[3]}</td><td><button class="btn btn-warning btn-sm">Mark for Scrap</button></td></tr>`;
         });
-
-        drawCar(player.x, player.y, "#e74c3c", true);
-
-        updateUI();
-        requestAnimationFrame(gameLoop);
+        document.getElementById('scrap-table').innerHTML = html;
+      }).getScrapItems();
     }
-
-    function endGame() {
-        gameActive = false;
-        document.getElementById('end-screen').classList.remove('hidden');
-        const finalScore = Math.floor(score);
-        document.getElementById('final-score').innerText = finalScore;
-        
-        saveScore(finalScore);
-        displayRanking();
-    }
-
-    function saveScore(newScore) {
-        let scores = JSON.parse(localStorage.getItem('racingScores') || "[]");
-        scores.push(newScore);
-        scores.sort((a, b) => b - a);
-        scores = scores.slice(0, 5); // Keep top 5
-        localStorage.setItem('racingScores', JSON.stringify(scores));
-    }
-
-    function displayRanking() {
-        const scores = JSON.parse(localStorage.getItem('racingScores') || "[]");
-        const tbody = document.getElementById('ranking-body');
-        tbody.innerHTML = scores.map((s, i) => `<tr><td>${i+1}</td><td>${s}</td></tr>`).join('');
-    }
-</script>
+  </script>
 </body>
 </html>
