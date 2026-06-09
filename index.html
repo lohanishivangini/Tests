@@ -14,15 +14,35 @@
 </head>
 <body>
 
-<div id="login-page" class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-4 card p-4">
-      <h3 class="text-center">Store Login</h3>
-      <input type="email" id="email" class="form-control mb-2" placeholder="Email">
-      <input type="password" id="pass" class="form-control mb-3" placeholder="Password">
-      <button class="btn btn-primary w-100" onclick="login()">Enter System</button>
-    </div>
-  </div>
+function login() {
+    const e = document.getElementById('email').value;
+    const p = document.getElementById('pass').value;
+    const btn = document.querySelector('button');
+    
+    btn.innerText = "Loading..."; // Feedback that click worked
+    btn.disabled = true;
+
+    google.script.run
+      .withSuccessHandler(res => {
+        btn.innerText = "Enter System";
+        btn.disabled = false;
+        if(res && res.success) {
+          userSession = res;
+          document.getElementById('login-page').className = 'hidden';
+          document.getElementById('dashboard').className = '';
+          document.getElementById('user-info').innerText = res.email + " (" + res.role + ")";
+          loadInterface(res.role);
+        } else { 
+          alert("Login Failed: User not found or incorrect password."); 
+        }
+      })
+      .withFailureHandler(err => {
+        btn.innerText = "Enter System";
+        btn.disabled = false;
+        alert("Script Error: " + err.message); // This will tell us if it's a permission issue
+      })
+      .login(e, p);
+  }
 </div>
 
 <div id="dashboard" class="hidden">
