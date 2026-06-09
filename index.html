@@ -1,160 +1,166 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background: #f4f7f6; padding: 20px; }
-    .card { margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    :root { --primary: #2c3e50; --accent: #3498db; }
+    body { background: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background: var(--primary); color: white; padding: 1rem; margin-bottom: 2rem; }
+    .card { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .hidden { display: none; }
-    #letter-head { border: 2px solid #000; padding: 20px; margin-top: 20px; background: white;}
+    #letter-box { border: 2px solid #333; padding: 40px; background: white; margin-top: 20px; font-family: serif; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2 class="text-center mb-4">Store Management System</h2>
 
-    <!-- Login Section -->
-    <div id="login-section" class="card p-4 mx-auto" style="max-width: 400px;">
-      <h4>Login</h4>
-      <input type="text" id="email" class="form-control mb-2" placeholder="Email">
-      <input type="password" id="pass" class="form-control mb-2" placeholder="Password">
-      <button class="btn btn-primary w-100" onclick="doLogin()">Login</button>
-    </div>
-
-    <!-- Main Dashboard -->
-    <div id="main-ui" class="hidden">
-      <div class="d-flex justify-content-between mb-3">
-        <h5 id="welcome-text"></h5>
-        <button class="btn btn-danger btn-sm" onclick="location.reload()">Logout</button>
-      </div>
-
-      <!-- Interface 1: Requester -->
-      <div id="ui-Requester" class="interface hidden">
-        <div class="card p-4">
-          <h4>Raise Item Requirement</h4>
-          <select id="item-select" class="form-select mb-2"></select>
-          <input type="number" id="item-qty" class="form-control mb-2" placeholder="Quantity">
-          <button class="btn btn-success" onclick="submitReq()">Submit Requirement</button>
-        </div>
-      </div>
-
-      <!-- Interface 2: Principal -->
-      <div id="ui-Principal" class="interface hidden">
-        <div class="card p-4">
-          <h4>Principal Approval Queue</h4>
-          <table class="table" id="principal-table"></table>
-        </div>
-      </div>
-
-      <!-- Interface 3: Store Manager -->
-      <div id="ui-StoreManager" class="interface hidden">
-        <div class="card p-4">
-          <h4>Stock Availability & Allotment</h4>
-          <table class="table" id="store-table"></table>
-        </div>
-        <!-- Letter Preview -->
-        <div id="letter-view" class="hidden">
-           <div id="letter-head">
-             <h3 class="text-center">OFFICIAL ALLOTMENT LETTER</h3>
-             <hr>
-             <p>Date: <span id="l-date"></span></p>
-             <p>Ref ID: <span id="l-id"></span></p>
-             <p>Subject: Allotment of Store Items</p>
-             <p>The following items are hereby allotted: <b id="l-item"></b> (Qty: <b id="l-qty"></b>)</p>
-             <br><br>
-             <p class="text-end">Authorized Signatory,<br>Store Department</p>
-           </div>
-           <button class="btn btn-secondary mt-2" onclick="window.print()">Print Letter</button>
-        </div>
-      </div>
-
-      <!-- Interface 4: Scrap Committee -->
-      <div id="ui-ScrapCommittee" class="interface hidden">
-        <div class="card p-4">
-          <h4>Scrap Evaluation (Procurement > 3 Years)</h4>
-          <table class="table" id="scrap-table"></table>
-        </div>
-      </div>
-
+<div id="login-page" class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-4 card p-4">
+      <h3 class="text-center">Store Login</h3>
+      <input type="email" id="email" class="form-control mb-2" placeholder="Email">
+      <input type="password" id="pass" class="form-control mb-3" placeholder="Password">
+      <button class="btn btn-primary w-100" onclick="login()">Enter System</button>
     </div>
   </div>
+</div>
 
-  <script>
-    let currentUser = {};
+<div id="dashboard" class="hidden">
+  <nav class="navbar d-flex justify-content-between">
+    <span class="fw-bold">STORE MANAGEMENT PORTAL</span>
+    <span id="user-info"></span>
+    <button class="btn btn-outline-light btn-sm" onclick="location.reload()">Logout</button>
+  </nav>
 
-    function doLogin() {
-      const email = document.getElementById('email').value;
-      const pass = document.getElementById('pass').value;
-      google.script.run.withSuccessHandler(res => {
-        if(res.success) {
-          currentUser = res;
-          document.getElementById('login-section').classList.add('hidden');
-          document.getElementById('main-ui').classList.remove('hidden');
-          document.getElementById('welcome-text').innerText = `Role: ${res.role}`;
-          showInterface(res.role);
-        } else { alert("Invalid Credentials"); }
-      }).login(email, pass);
-    }
+  <div class="container">
+    <!-- Interface 1: Requester -->
+    <div id="int-Requester" class="role-ui hidden">
+      <div class="card p-4">
+        <h4>Raise New Requirement</h4>
+        <label>Select Item</label>
+        <select id="item-list" class="form-select mb-3"></select>
+        <label>Quantity Required</label>
+        <input type="number" id="req-qty" class="form-control mb-3">
+        <button class="btn btn-success" onclick="raiseReq()">Submit to Principal</button>
+      </div>
+    </div>
 
-    function showInterface(role) {
-      document.querySelectorAll('.interface').forEach(i => i.classList.add('hidden'));
-      document.getElementById('ui-' + role).classList.remove('hidden');
-      
-      if(role === 'Requester') loadItems();
-      if(role === 'Principal') loadRequests('Principal');
-      if(role === 'StoreManager') loadRequests('StoreManager');
-      if(role === 'ScrapCommittee') loadScrap();
-    }
+    <!-- Interface 2: Principal -->
+    <div id="int-Principal" class="role-ui hidden">
+      <div class="card p-4">
+        <h4>Requirements Pending Approval</h4>
+        <div id="principal-list"></div>
+      </div>
+    </div>
 
-    function loadItems() {
-      google.script.run.withSuccessHandler(items => {
-        const sel = document.getElementById('item-select');
-        items.forEach(it => sel.innerHTML += `<option>${it}</option>`);
-      }).getItemsList();
-    }
+    <!-- Interface 3: Store Manager -->
+    <div id="int-StoreManager" class="role-ui hidden">
+      <div class="card p-4">
+        <h4>Allotment & Stock Verification</h4>
+        <div id="store-list"></div>
+      </div>
+      <div id="allotment-letter" class="hidden">
+        <div id="letter-box">
+          <h2 class="text-center">OFFICIAL ALLOTMENT LETTER</h2>
+          <p class="text-end">Date: <span id="lt-date"></span></p>
+          <p>To,<br>The Concerned Department,</p>
+          <p>Subject: Allotment of Store Items as per Req #<span id="lt-id"></span></p>
+          <p>Upon verification of stock register, the following items are hereby released:</p>
+          <table class="table table-bordered">
+            <tr><th>Item Description</th><th>Quantity Allotted</th></tr>
+            <tr><td id="lt-item"></td><td id="lt-qty"></td></tr>
+          </table>
+          <br><br><br>
+          <p>___________________<br>Authorized Signatory<br>Store Department</p>
+        </div>
+        <button class="btn btn-dark mt-3" onclick="window.print()">Print Letter</button>
+      </div>
+    </div>
 
-    function submitReq() {
-      const item = document.getElementById('item-select').value;
-      const qty = document.getElementById('item-qty').value;
-      google.script.run.withSuccessHandler(msg => alert(msg))
-        .submitRequirement(item, qty, currentUser.email);
-    }
+    <!-- Interface 4: Scrap Committee -->
+    <div id="int-ScrapCommittee" class="role-ui hidden">
+      <div class="card p-4">
+        <h4>Scrap Evaluation Board (> 3 Years Old)</h4>
+        <table class="table table-hover">
+          <thead><tr><th>Item</th><th>Year</th><th>Status</th></tr></thead>
+          <tbody id="scrap-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 
-    function loadRequests(role) {
+<script>
+  let userSession = {};
+
+  function login() {
+    const e = document.getElementById('email').value;
+    const p = document.getElementById('pass').value;
+    google.script.run.withSuccessHandler(res => {
+      if(res.success) {
+        userSession = res;
+        document.getElementById('login-page').className = 'hidden';
+        document.getElementById('dashboard').className = '';
+        document.getElementById('user-info').innerText = res.email + " (" + res.role + ")";
+        loadInterface(res.role);
+      } else { alert("Login Failed"); }
+    }).login(e, p);
+  }
+
+  function loadInterface(role) {
+    document.querySelectorAll('.role-ui').forEach(el => el.classList.add('hidden'));
+    document.getElementById('int-' + role).classList.remove('hidden');
+
+    if(role === 'Requester') {
       google.script.run.withSuccessHandler(data => {
-        let html = `<tr><th>ID</th><th>Item</th><th>Qty</th><th>Action</th></tr>`;
-        data.forEach(r => {
-          html += `<tr><td>${r[0]}</td><td>${r[2]}</td><td>${r[3]}</td>
-          <td><button class="btn btn-primary btn-sm" onclick="approve('${r[0]}')">Approve</button></td></tr>`;
-        });
-        document.getElementById(role === 'Principal' ? 'principal-table' : 'store-table').innerHTML = html;
-      }).getRequestsForRole(role);
+        let sel = document.getElementById('item-list');
+        data.forEach(row => sel.innerHTML += `<option value="${row[0]}">${row[0]} (Stock: ${row[1]})</option>`);
+      }).getInventory();
     }
 
-    function approve(id) {
-      if(currentUser.role === 'StoreManager') {
-        google.script.run.withSuccessHandler(res => {
-          document.getElementById('letter-view').classList.remove('hidden');
-          document.getElementById('l-date').innerText = new Date().toLocaleDateString();
-          document.getElementById('l-id').innerText = res.id;
-          document.getElementById('l-item').innerText = res.item;
-          document.getElementById('l-qty').innerText = res.qty;
-        }).finalStoreApprove(id);
+    if(role === 'Principal' || role === 'StoreManager') {
+      google.script.run.withSuccessHandler(data => {
+        let div = document.getElementById(role === 'Principal' ? 'principal-list' : 'store-list');
+        if(data.length === 0) div.innerHTML = "<p>No pending requests.</p>";
+        data.forEach(r => {
+          div.innerHTML += `<div class="alert alert-info d-flex justify-content-between align-items-center">
+            <span>Req by ${r[1]}: <b>${r[2]}</b> (Qty: ${r[3]})</span>
+            <button class="btn btn-primary btn-sm" onclick="approve('${r[0]}')">Approve & Move Forward</button>
+          </div>`;
+        });
+      }).getPendingRequests(role);
+    }
+
+    if(role === 'ScrapCommittee') {
+      google.script.run.withSuccessHandler(data => {
+        let body = document.getElementById('scrap-body');
+        data.forEach(r => {
+          body.innerHTML += `<tr><td>${r[0]}</td><td>${r[2]}</td><td><span class="badge bg-danger">ELIGIBLE FOR SCRAP</span></td></tr>`;
+        });
+      }).getScrapData();
+    }
+  }
+
+  function raiseReq() {
+    const itm = document.getElementById('item-list').value;
+    const qty = document.getElementById('req-qty').value;
+    google.script.run.withSuccessHandler(msg => alert(msg)).submitRequest(itm, qty, userSession.email);
+  }
+
+  function approve(id) {
+    google.script.run.withSuccessHandler(res => {
+      if(userSession.role === 'StoreManager') {
+        document.getElementById('allotment-letter').classList.remove('hidden');
+        document.getElementById('lt-date').innerText = new Date().toLocaleDateString();
+        document.getElementById('lt-id').innerText = id;
+        document.getElementById('lt-item').innerText = res.details[2];
+        document.getElementById('lt-qty').innerText = res.details[3];
       } else {
-        // Simple Logic for Principal approval
-        alert("Principal Approved " + id);
+        alert("Approved by Principal. Request moved to Store Manager.");
+        location.reload();
       }
-    }
-
-    function loadScrap() {
-      google.script.run.withSuccessHandler(data => {
-        let html = `<tr><th>Item</th><th>Purchased</th><th>Action</th></tr>`;
-        data.forEach(r => {
-          html += `<tr><td>${r[1]}</td><td>${r[3]}</td><td><button class="btn btn-warning btn-sm">Mark for Scrap</button></td></tr>`;
-        });
-        document.getElementById('scrap-table').innerHTML = html;
-      }).getScrapItems();
-    }
-  </script>
+    }).updateStatus(id, userSession.role, "Approved");
+  }
+</script>
 </body>
 </html>
